@@ -1,10 +1,10 @@
 {
-  "name": "plugin-template",
+  "name": "plugin-matrix",
   "build": {
     "context": ".",
     "dockerfile": "Dockerfile"
   },
-  "workspaceFolder": "/workspaces/plugin-template",
+  "workspaceFolder": "/workspaces/plugin-matrix",
   "forwardPorts": [8080],
   "customizations": {
     "vscode": {
