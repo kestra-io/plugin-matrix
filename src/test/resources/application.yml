@@ -10,4 +10,5 @@ kestra:
 
 micronaut:
   server:
-    port: 59444
+    # -1 lets Micronaut pick a free port; MatrixExecutionTest injects the real URL into the test flows
+    port: -1

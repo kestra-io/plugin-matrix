@@ -2,17 +2,14 @@ package io.kestra.plugin.matrix;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.time.Duration;
-import java.util.Objects;
-import java.util.concurrent.TimeoutException;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
 import io.kestra.core.runners.TestRunner;
-import io.kestra.core.utils.Await;
 
 import jakarta.inject.Inject;
 
@@ -27,15 +24,15 @@ class MatrixExecutionTest extends AbstractMatrixTest {
     @Inject
     protected LocalFlowRepositoryLoader repositoryLoader;
 
-    @BeforeEach
-    protected void init() throws IOException, URISyntaxException {
-        FakeMatrixController.message = null;
-        FakeMatrixController.authorizationHeader = null;
-        FakeMatrixController.roomId = null;
-        FakeMatrixController.forcedErrorCode = null;
-
-        repositoryLoader.load(Objects.requireNonNull(MatrixExecutionTest.class.getClassLoader().getResource("flows")));
+    @BeforeAll
+    void setUpFlows() throws IOException, URISyntaxException {
+        repositoryLoader.load(flowsWithEmbeddedServerUrl());
         this.runner.run();
+    }
+
+    @BeforeEach
+    protected void init() {
+        resetFakeController();
     }
 
     @Test
@@ -45,15 +42,7 @@ class MatrixExecutionTest extends AbstractMatrixTest {
             "matrix"
         );
 
-        try {
-            Await.until(
-                () -> FakeMatrixController.message,
-                Duration.ofMillis(100),
-                Duration.ofSeconds(5)
-            );
-        } catch (TimeoutException e) {
-            throw new RuntimeException("Timed out waiting for FakeMatrixController.message to be set", e);
-        }
+        awaitMessage();
 
         assertThat(FakeMatrixController.authorizationHeader, comparesEqualTo("Bearer token"));
         assertThat(FakeMatrixController.roomId, comparesEqualTo("!room:example.org"));

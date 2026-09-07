@@ -1,4 +1,4 @@
-id: matrix
+id: matrix-success
 namespace: io.kestra.tests
 
 inputs:
@@ -12,14 +12,18 @@ tasks:
     homeserverUrl: "{{ inputs.url }}"
     accessToken: "token"
     roomId: "!room:example.org"
+    msgtype: NOTICE
     executionId: "{{trigger.executionId}}"
+    customMessage: "nightly batch finished"
+    customFields:
+      env: qa
 
 triggers:
-  - id: on_failure
+  - id: on_success
     type: io.kestra.plugin.core.trigger.Flow
     preconditions:
       id: flow_trigger
       flows:
         - namespace: io.kestra.tests
-          flowId: main-flow-that-fails
-          states: [ FAILED ]
+          flowId: main-flow-that-succeeds
+          states: [ SUCCESS ]

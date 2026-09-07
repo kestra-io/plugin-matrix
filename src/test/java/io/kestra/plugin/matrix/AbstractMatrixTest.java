@@ -1,8 +1,18 @@
 package io.kestra.plugin.matrix;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,6 +22,7 @@ import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.queues.QueueFactoryInterface;
 import io.kestra.core.queues.QueueInterface;
 import io.kestra.core.runners.TestRunnerUtils;
+import io.kestra.core.utils.Await;
 import io.kestra.core.utils.TestsUtils;
 
 import io.micronaut.context.ApplicationContext;
@@ -52,6 +63,62 @@ public class AbstractMatrixTest {
         if (embeddedServer != null) {
             embeddedServer.stop();
         }
+    }
+
+    /**
+     * Placeholder written into the test flows in place of a hardcoded homeserver URL. The embedded
+     * server binds a random port (see application.yml), so the real URL is only known at runtime and
+     * is substituted into a temporary copy of the flows before they are loaded.
+     */
+    protected static final String URL_PLACEHOLDER = "MATRIX_TEST_URL";
+
+    protected void resetFakeController() {
+        FakeMatrixController.message = null;
+        FakeMatrixController.authorizationHeader = null;
+        FakeMatrixController.roomId = null;
+        FakeMatrixController.forcedErrorCode = null;
+    }
+
+    protected void awaitMessage() {
+        try {
+            Await.until(
+                () -> FakeMatrixController.message,
+                Duration.ofMillis(100),
+                Duration.ofSeconds(5)
+            );
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Timed out waiting for FakeMatrixController.message to be set", e);
+        }
+    }
+
+    /**
+     * Copies the classpath {@code flows} directory to a temp directory, replacing
+     * {@link #URL_PLACEHOLDER} with the embedded server's actual URL, and returns that directory.
+     */
+    protected URL flowsWithEmbeddedServerUrl() throws IOException, URISyntaxException {
+        Path source = Path.of(Objects.requireNonNull(
+            AbstractMatrixTest.class.getClassLoader().getResource("flows")
+        ).toURI());
+        Path target = Files.createTempDirectory("matrix-flows");
+        String serverUrl = embeddedServer.getURL().toString();
+
+        try (Stream<Path> paths = Files.walk(source)) {
+            for (Path path : paths.toList()) {
+                Path destination = target.resolve(source.relativize(path).toString());
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.writeString(
+                        destination,
+                        Files.readString(path, StandardCharsets.UTF_8).replace(URL_PLACEHOLDER, serverUrl),
+                        StandardCharsets.UTF_8
+                    );
+                }
+            }
+        }
+
+        return target.toUri().toURL();
     }
 
     protected io.kestra.core.models.executions.Execution runAndCaptureExecution(String triggeringFlowId, String notificationFlowId) throws Exception {

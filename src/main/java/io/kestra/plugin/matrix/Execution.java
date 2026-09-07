@@ -28,7 +28,11 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @Schema(
     title = "Notify Matrix about execution result",
-    description = "Sends a templated Matrix message with execution link, identifiers, timing, status, and failing task when applicable. Use with a [Flow trigger](https://kestra.io/docs/administrator-guide/monitoring#alerting); for `errors` handlers prefer [Send](https://kestra.io/plugins/plugin-matrix/io.kestra.plugin.matrix.send)."
+    description = """
+        Sends a templated Matrix message with execution link, identifiers, timing, status, and failing task when
+        applicable. Use with a [Flow trigger](https://kestra.io/docs/administrator-guide/monitoring#alerting);
+        for `errors` handlers prefer
+        [Send](https://kestra.io/plugins/plugin-matrix/io.kestra.plugin.matrix.send)."""
 )
 @Plugin(
     examples = {
@@ -61,7 +65,8 @@ import lombok.experimental.SuperBuilder;
 public class Execution extends Template implements ExecutionInterface {
     @Schema(
         title = "Execution ID",
-        description = "ID of the execution to notify about; defaults to the current execution's ID."
+        description = """
+            ID of the execution to notify about; defaults to the current execution's ID."""
     )
     @Builder.Default
     @PluginProperty(group = "advanced")
@@ -69,16 +74,18 @@ public class Execution extends Template implements ExecutionInterface {
 
     @Schema(
         title = "Custom fields",
-        description = "Additional key-value pairs merged into the template rendering context."
+        description = """
+            Additional key-value pairs merged into the template rendering context."""
     )
-    @PluginProperty(group = "destination")
+    @PluginProperty(group = "main")
     private Property<Map<String, Object>> customFields;
 
     @Schema(
         title = "Custom message",
-        description = "Overrides the default templated message text when set."
+        description = """
+            Extra message text appended to the templated notification when set."""
     )
-    @PluginProperty(group = "destination")
+    @PluginProperty(group = "main")
     private Property<String> customMessage;
 
     @Override

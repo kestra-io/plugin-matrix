@@ -15,6 +15,7 @@ import io.kestra.core.http.HttpResponse;
 import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.HttpClientException;
 import io.kestra.core.http.client.HttpClientResponseException;
+import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 
 public class MatrixApiService {
@@ -27,6 +28,7 @@ public class MatrixApiService {
         String roomId,
         String body,
         String msgtype,
+        String transactionId,
         HttpRequest.HttpRequestBuilder requestBuilder
     ) throws ErrorSendingMessageException {
         MatrixMessage payload = new MatrixMessage(msgtype, body);
@@ -35,7 +37,7 @@ public class MatrixApiService {
             + "/_matrix/client/v3/rooms/"
             + encodePathSegment(roomId)
             + "/send/m.room.message/"
-            + UUID.randomUUID();
+            + encodePathSegment(transactionId);
 
         requestBuilder
             .addHeader("Authorization", "Bearer " + accessToken)
@@ -63,8 +65,26 @@ public class MatrixApiService {
             MatrixError matrixError = response != null ? parseError(response.getBody()) : null;
             throw new ErrorSendingMessageException(response != null ? response.getStatus() : null, matrixError, roomId);
         } catch (IllegalVariableEvaluationException | HttpClientException e) {
-            throw new RuntimeException(e);
+            throw new ErrorSendingMessageException(
+                "Unable to reach Matrix homeserver '" + homeserverUrl + "': " + e.getMessage()
+                    + " — check that the homeserver URL is correct and reachable from the Kestra worker.",
+                e
+            );
         }
+    }
+
+    /**
+     * Matrix uses the transaction ID to deduplicate retries of the same logical send, so it must stay
+     * stable across attempts. The task run ID is constant for every attempt of a given task run, which
+     * makes a Kestra {@code retry} of a send that actually reached the homeserver idempotent rather
+     * than posting the message twice.
+     */
+    public static String transactionIdFor(RunContext runContext) {
+        RunContext.TaskRunInfo taskRunInfo = runContext.taskRunInfo();
+
+        return taskRunInfo != null && taskRunInfo.taskRunId() != null
+            ? "kestra-" + taskRunInfo.taskRunId()
+            : "kestra-" + UUID.randomUUID();
     }
 
     /**
@@ -123,6 +143,13 @@ public class MatrixApiService {
         public final HttpResponse.Status httpStatus;
         public final String errcode;
         public final String error;
+
+        public ErrorSendingMessageException(String message, Throwable cause) {
+            super(message, cause);
+            this.httpStatus = null;
+            this.errcode = null;
+            this.error = null;
+        }
 
         public ErrorSendingMessageException(HttpResponse.Status httpStatus, MatrixError matrixError, String roomId) {
             super(buildMessage(httpStatus, matrixError, roomId));

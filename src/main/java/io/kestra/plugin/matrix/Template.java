@@ -1,10 +1,9 @@
 package io.kestra.plugin.matrix;
 
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
-
-import org.apache.commons.io.IOUtils;
 
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
@@ -26,7 +25,8 @@ import lombok.experimental.SuperBuilder;
 public abstract class Template extends Send {
     @Schema(
         title = "Template resource path",
-        description = "Classpath Pebble template used to build the message payload before sending.",
+        description = """
+            Classpath Pebble template used to build the message payload before sending.""",
         hidden = true
     )
     @PluginProperty(group = "advanced")
@@ -34,20 +34,23 @@ public abstract class Template extends Send {
 
     @Schema(
         title = "Template variables",
-        description = "Map of variables rendered and passed to the Pebble template; defaults to an empty map when not provided."
+        description = """
+            Map of variables rendered and passed to the Pebble template; defaults to an empty map when not provided."""
     )
     @PluginProperty(group = "advanced")
     protected Property<Map<String, Object>> templateRenderMap;
 
-    @SuppressWarnings("unchecked")
     @Override
     public VoidOutput run(RunContext runContext) throws Exception {
         var renderedTemplateUri = runContext.render(this.templateUri).as(String.class);
         if (renderedTemplateUri.isPresent()) {
-            String template = IOUtils.toString(
-                Objects.requireNonNull(this.getClass().getClassLoader().getResourceAsStream(renderedTemplateUri.get())),
-                StandardCharsets.UTF_8
-            );
+            String template;
+            try (InputStream resource = Objects.requireNonNull(
+                this.getClass().getClassLoader().getResourceAsStream(renderedTemplateUri.get()),
+                "Template resource not found on the classpath: " + renderedTemplateUri.get()
+            )) {
+                template = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
+            }
 
             this.payload = Property.ofValue(
                 runContext.render(

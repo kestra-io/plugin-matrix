@@ -29,9 +29,11 @@ import lombok.experimental.SuperBuilder;
 public abstract class AbstractConnection extends Task implements RunnableTask<VoidOutput> {
     @Schema(
         title = "Configure Matrix HTTP client",
-        description = "Optional HTTP client overrides for Matrix calls. Leave unset to use defaults: 10s read timeout, 5m read idle timeout, 10 MB max response, UTF-8 charset."
+        description = """
+            Optional HTTP client overrides for Matrix calls.
+            Leave unset to use the defaults: no connect timeout, a 5m read idle timeout and UTF-8 as the request charset."""
     )
-    @PluginProperty(dynamic = true, group = "advanced")
+    @PluginProperty(group = "advanced")
     protected RequestOptions options;
 
     protected HttpConfiguration httpClientConfigurationWithOptions() throws IllegalVariableEvaluationException {
@@ -65,41 +67,45 @@ public abstract class AbstractConnection extends Task implements RunnableTask<Vo
         return builder;
     }
 
+    /**
+     * Only the options that Kestra's {@link HttpConfiguration} still supports are exposed here.
+     * The legacy {@code readTimeout}, {@code connectionPoolIdleTimeout} and {@code maxContentLength}
+     * builder setters are deprecated in Kestra 1.x and removed altogether in 2.x, so declaring them
+     * would either be silently ignored or fail at runtime on a 2.x instance.
+     */
     @Getter
     @Builder
     public static class RequestOptions {
-        @Schema(title = "Maximum time to establish the connection before failing; unset uses the client default.")
+        @Schema(
+            title = "Connect timeout",
+            description = """
+                Maximum time to establish the connection before failing; unset uses the client default."""
+        )
         @PluginProperty(group = "execution")
         private final Property<Duration> connectTimeout;
 
-        @Schema(title = "Maximum read duration before failing; defaults to 10s.")
-        @Builder.Default
-        @PluginProperty(group = "execution")
-        private final Property<Duration> readTimeout = Property.ofValue(Duration.ofSeconds(10));
-
-        @Schema(title = "Idle time allowed while reading before closing the connection; defaults to 5m.")
+        @Schema(
+            title = "Read idle timeout",
+            description = """
+                Idle time allowed while reading before the connection is closed; defaults to 5m."""
+        )
         @Builder.Default
         @PluginProperty(group = "execution")
         private final Property<Duration> readIdleTimeout = Property.ofValue(Duration.of(5, ChronoUnit.MINUTES));
 
-        @Schema(title = "Idle timeout for pooled connections; defaults to 0s.")
-        @Builder.Default
-        @PluginProperty(group = "execution")
-        private final Property<Duration> connectionPoolIdleTimeout = Property.ofValue(Duration.ofSeconds(0));
-
-        @Schema(title = "Maximum response size; defaults to 10 MB.")
-        @Builder.Default
-        @PluginProperty(group = "execution")
-        private final Property<Integer> maxContentLength = Property.ofValue(1024 * 1024 * 10);
-
-        @Schema(title = "Request charset; defaults to UTF-8.")
+        @Schema(
+            title = "Request charset",
+            description = """
+                Charset used to encode the request body; defaults to UTF-8."""
+        )
         @Builder.Default
         @PluginProperty(group = "advanced")
         private final Property<Charset> defaultCharset = Property.ofValue(StandardCharsets.UTF_8);
 
         @Schema(
             title = "HTTP headers",
-            description = "HTTP headers to include in the request"
+            description = """
+                Additional HTTP headers to include in every request sent to the homeserver."""
         )
         @PluginProperty(group = "advanced")
         public Property<Map<String, String>> headers;
