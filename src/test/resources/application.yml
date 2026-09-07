@@ -7,3 +7,7 @@ kestra:
     type: local
     local:
       base-path: /tmp/unittest
+
+micronaut:
+  server:
+    port: 59444

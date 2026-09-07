@@ -1,0 +1,25 @@
+id: matrix
+namespace: io.kestra.tests
+
+inputs:
+  - id: url
+    type: STRING
+    defaults: "http://localhost:59444"
+
+tasks:
+  - id: matrix
+    type: io.kestra.plugin.matrix.Execution
+    homeserverUrl: "{{ inputs.url }}"
+    accessToken: "token"
+    roomId: "!room:example.org"
+    executionId: "{{trigger.executionId}}"
+
+triggers:
+  - id: on_failure
+    type: io.kestra.plugin.core.trigger.Flow
+    preconditions:
+      id: flow_trigger
+      flows:
+        - namespace: io.kestra.tests
+          flowId: main-flow-that-fails
+          states: [ FAILED ]
