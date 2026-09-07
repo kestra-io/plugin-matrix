@@ -134,6 +134,7 @@ public class MatrixApiService {
         private static String buildMessage(HttpResponse.Status httpStatus, MatrixError matrixError, String roomId) {
             String errcode = matrixError != null ? matrixError.errcode() : null;
             String statusText = httpStatus != null ? String.valueOf(httpStatus.getCode()) : "unknown";
+            String noDetail = matrixError != null && matrixError.error() != null ? matrixError.error() : "no further detail returned by the homeserver";
 
             String hint = switch (errcode == null ? "" : errcode) {
                 case "M_FORBIDDEN" -> "the bot account must be invited to and have joined room '" + roomId + "'";
@@ -142,8 +143,7 @@ public class MatrixApiService {
                     + (matrixError.retryAfterMs() != null ? "; retry after " + matrixError.retryAfterMs() + "ms" : "")
                     + " — consider adding a `retry` block to this task";
                 case "M_TOO_LARGE" -> "the message is too large for the homeserver to accept";
-                case "" -> matrixError != null && matrixError.error() != null ? matrixError.error() : "no further detail returned by the homeserver";
-                default -> matrixError.error() != null ? matrixError.error() : "no further detail returned by the homeserver";
+                default -> noDetail;
             };
 
             return "Unable to send Matrix message (HTTP " + statusText + (errcode != null ? ", " + errcode : "") + "): " + hint;
