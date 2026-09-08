@@ -88,6 +88,37 @@ public class MatrixApiService {
     }
 
     /**
+     * A bearer token sent over plain {@code http} travels in cleartext. That is expected against a
+     * local Synapse during development, so only a non-loopback host is worth warning about — a
+     * misconfigured production homeserver would otherwise leak the token silently.
+     */
+    public static void warnIfTokenSentInCleartext(RunContext runContext, String homeserverUrl) {
+        URI uri = URI.create(normalizeHomeserverUrl(homeserverUrl));
+
+        if (!"http".equalsIgnoreCase(uri.getScheme()) || isLoopbackHost(uri.getHost())) {
+            return;
+        }
+
+        runContext.logger().warn(
+            "homeserverUrl '{}' uses plain http, so the Matrix access token is sent over the network in cleartext. Use https unless the homeserver is local.",
+            homeserverUrl
+        );
+    }
+
+    private static boolean isLoopbackHost(String host) {
+        if (host == null) {
+            return true;
+        }
+
+        String bare = host.startsWith("[") && host.endsWith("]") ? host.substring(1, host.length() - 1) : host;
+
+        return bare.equalsIgnoreCase("localhost")
+            || bare.endsWith(".localhost")
+            || bare.equals("::1")
+            || bare.startsWith("127.");
+    }
+
+    /**
      * A homeserver or reverse proxy may return a non-JSON body (e.g. HTML on a 502/503),
      * so a parse failure must not itself throw — the caller falls back to the raw status.
      */

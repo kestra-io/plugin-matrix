@@ -57,7 +57,6 @@ import lombok.experimental.SuperBuilder;
                     states:
                       - FAILED
                       - WARNING
-                    when: "{{ flow.namespace | startsWith('prod') }}"
                 """
         )
     }

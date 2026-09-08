@@ -7,12 +7,10 @@ Send messages and execution summaries to [Matrix](https://spec.matrix.org/latest
 Every task requires:
 
 - `homeserverUrl` — the base URL of the Matrix homeserver the bot account is registered on, for example `https://matrix.org`. Matrix is federated, so there is no default.
-- `accessToken` — the bot account's access token, obtained via the `/login` endpoint or, in Element, under Settings > Help & About > Access Token. Store it as a [secret](https://kestra.io/docs/concepts/secret); it is never accepted as a flow input in plain text and is masked in logs.
+- `accessToken` — the bot account's access token, obtained via the `/login` endpoint or, in Element, under Settings > Help & About > Access Token. Store it as a [secret](https://kestra.io/docs/concepts/secret) — a plain-text value is still accepted, Kestra only raises a warning on the flow, and the value is not masked in logs.
 - `roomId` — the target room's internal ID, starting with `!` (for example `!OGEhHVWSdvArJzumhm:matrix.org`), found in Element under the room's Settings > Advanced. A room alias (starting with `#`) is not accepted.
 
 The bot account must already be a **member** of the room — invite it and have it join before sending, otherwise the homeserver returns `M_FORBIDDEN`. The plugin does not support end-to-end encrypted rooms (no maintained Java Olm/Megolm implementation exists); posting to an E2EE room will fail.
-
-Connection properties, `accessToken` and `roomId` included, must be set on **both** `Send` and `Execution` — they cannot share a common superclass with the polling trigger model, so keep the two declarations in sync if you fork this plugin.
 
 ## Tasks
 

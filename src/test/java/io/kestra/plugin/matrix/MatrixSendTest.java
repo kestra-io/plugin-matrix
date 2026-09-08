@@ -110,6 +110,24 @@ class MatrixSendTest {
     }
 
     @Test
+    void run_withLowercaseMsgType_fromYaml_shouldSendNotice() throws Exception {
+        RunContext runContext = runContextFactory.of();
+
+        String yaml = """
+            homeserverUrl: "%s"
+            accessToken: "token"
+            roomId: "!room:example.org"
+            payload: "Hello"
+            msgtype: notice
+            """.formatted(homeserverUrl);
+
+        Send task = JacksonMapper.ofYaml().readValue(yaml, Send.class);
+        task.run(runContext);
+
+        assertThat(FakeMatrixController.message, equalToObject(new MatrixApiService.MatrixMessage("m.notice", "Hello")));
+    }
+
+    @Test
     void run_withRoomIdContainingSpecialCharacters_shouldEncodeAndDeliver() throws Exception {
         RunContext runContext = runContextFactory.of();
 
@@ -262,6 +280,9 @@ class MatrixSendTest {
         assertThat(Send.MsgType.fromString("NOTICE"), equalToObject(Send.MsgType.NOTICE));
         assertThat(Send.MsgType.fromString("EMOTE"), equalToObject(Send.MsgType.EMOTE));
         assertThat(Send.MsgType.fromString(null), equalToObject(null));
+        // casing is not significant, so `msgtype: notice` in a flow works too
+        assertThat(Send.MsgType.fromString("notice"), equalToObject(Send.MsgType.NOTICE));
+        assertThat(Send.MsgType.fromString("Emote"), equalToObject(Send.MsgType.EMOTE));
     }
 
     @Test
@@ -273,7 +294,7 @@ class MatrixSendTest {
 
         assertThat(
             exception.getMessage(),
-            equalToObject("Invalid msgtype value 'LOUD'. Valid values (case-sensitive): TEXT, NOTICE, EMOTE")
+            equalToObject("Invalid msgtype value 'LOUD'. Valid values: TEXT, NOTICE, EMOTE")
         );
     }
 }

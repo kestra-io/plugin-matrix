@@ -7,6 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -59,10 +62,21 @@ public class AbstractMatrixTest {
     }
 
     @AfterAll
-    void stopServer() {
+    void stopServer() throws IOException {
         if (embeddedServer != null) {
             embeddedServer.stop();
         }
+
+        // @TempDir is not usable here: the directory is created from @BeforeAll in the subclasses,
+        // before JUnit would inject a per-test temp dir.
+        for (Path tempFlowDir : tempFlowDirs) {
+            try (Stream<Path> paths = Files.walk(tempFlowDir)) {
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        tempFlowDirs.clear();
     }
 
     /**
@@ -71,6 +85,8 @@ public class AbstractMatrixTest {
      * is substituted into a temporary copy of the flows before they are loaded.
      */
     protected static final String URL_PLACEHOLDER = "MATRIX_TEST_URL";
+
+    private final List<Path> tempFlowDirs = new ArrayList<>();
 
     protected void resetFakeController() {
         FakeMatrixController.message = null;
@@ -100,6 +116,7 @@ public class AbstractMatrixTest {
             AbstractMatrixTest.class.getClassLoader().getResource("flows")
         ).toURI());
         Path target = Files.createTempDirectory("matrix-flows");
+        tempFlowDirs.add(target);
         String serverUrl = embeddedServer.getURL().toString();
 
         try (Stream<Path> paths = Files.walk(source)) {

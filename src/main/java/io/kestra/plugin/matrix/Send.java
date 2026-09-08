@@ -140,6 +140,8 @@ public class Send extends AbstractConnection {
             );
         }
 
+        MatrixApiService.warnIfTokenSentInCleartext(runContext, rHomeserverUrl);
+
         HttpRequest.HttpRequestBuilder requestBuilder = createRequestBuilder(runContext);
 
         try (HttpClient httpClient = new HttpClient(runContext, super.httpClientConfigurationWithOptions())) {
@@ -173,18 +175,23 @@ public class Send extends AbstractConnection {
             return value;
         }
 
+        /**
+         * Accepts any casing, so {@code msgtype: notice} works as well as {@code NOTICE}. The
+         * descriptive message on an unknown value never reaches the user — {@code Property} rendering
+         * swallows it and surfaces its own error — so the leniency, not the wording, is what helps here.
+         */
         @JsonCreator
         public static MsgType fromString(String value) {
             if (value == null) {
                 return null;
             }
             for (MsgType msgType : MsgType.values()) {
-                if (msgType.name().equals(value)) {
+                if (msgType.name().equalsIgnoreCase(value)) {
                     return msgType;
                 }
             }
             throw new IllegalArgumentException(
-                "Invalid msgtype value '" + value + "'. Valid values (case-sensitive): " +
+                "Invalid msgtype value '" + value + "'. Valid values: " +
                     Arrays.stream(MsgType.values()).map(Enum::name).collect(Collectors.joining(", "))
             );
         }

@@ -35,7 +35,8 @@ public abstract class Template extends Send {
     @Schema(
         title = "Template variables",
         description = """
-            Map of variables rendered and passed to the Pebble template; defaults to an empty map when not provided."""
+            Map of variables rendered and passed to the Pebble template; defaults to an empty map when not provided.""",
+        hidden = true
     )
     @PluginProperty(group = "advanced")
     protected Property<Map<String, Object>> templateRenderMap;
