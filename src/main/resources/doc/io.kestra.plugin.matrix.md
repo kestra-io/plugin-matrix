@@ -18,6 +18,8 @@ The bot account must already be a **member** of the room — invite it and have 
 
 `io.kestra.plugin.matrix.Execution` sends a structured execution summary — namespace, flow and execution IDs, status, failing task, duration, and an execution link — and is designed for use with a [Flow trigger](https://kestra.io/docs/workflow-components/triggers) in a dedicated monitoring namespace that watches other namespaces for failures.
 
+A Flow trigger declaring only `states` fires on every matching execution on the instance, as the `Execution` task's own example does. Narrowing it to specific flows or namespaces uses a property whose name depends on your Kestra version — `conditions` or `preconditions` on 1.3.x, `dependsOn` or `when` on 2.x — so the example deliberately ships unfiltered rather than pinning one version's spelling.
+
 ## Gotchas
 
 - **Rate limiting**: a `429` response (`M_LIMIT_EXCEEDED`) includes `retry_after_ms`; the plugin surfaces it in the error message rather than retrying automatically — add a `retry` block to the task if you want Kestra to retry.
