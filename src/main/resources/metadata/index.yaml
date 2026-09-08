@@ -1,8 +1,8 @@
 group: io.kestra.plugin.matrix
 name: "matrix"
 title: "Matrix"
-description: "Matrix plugin for Kestra"
-body: ""
+description: "Tasks that send notifications to Matrix rooms via a bot account."
+body: "Set your Matrix homeserver URL, bot access token, and target room ID to send messages from Kestra workflows to a Matrix room, or notify a room about a flow execution's result."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
